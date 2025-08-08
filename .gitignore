@@ -1,6 +1,9 @@
 .claude
 CLAUDE.md
-input_image/IMG*
+input_image/
+output_image/
+models/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

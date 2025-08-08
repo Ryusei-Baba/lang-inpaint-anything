@@ -22,8 +22,8 @@ echo "Downloading LaMa model..."
 mkdir -p Inpaint-Anything/pretrained_models/big-lama
 cd Inpaint-Anything/pretrained_models/big-lama
 
-# Download LaMa model files
-wget https://github.com/advimman/lama/releases/download/main-models/big-lama.zip
+# Download LaMa model files (using working Hugging Face URL)
+wget https://huggingface.co/smartywu/big-lama/resolve/main/big-lama.zip
 unzip big-lama.zip
 rm big-lama.zip
 
@@ -47,5 +47,12 @@ echo "Downloaded models:"
 echo "- SAM ViT-H: Inpaint-Anything/pretrained_models/sam_vit_h_4b8939.pth"
 echo "- MobileSAM: Inpaint-Anything/weights/mobile_sam.pt"  
 echo "- LaMa: Inpaint-Anything/pretrained_models/big-lama/"
+echo "- GroundingDINO: models/grounding_dino/groundingdino_swint_ogc.pth"
+echo ""
+echo "Next steps:"
+echo "1. Install Python dependencies:"
+echo "   pip install -r install/requirements.txt"
+echo "   pip install groundingdino-py"
 echo ""
 echo "You can now run Text Remove Anything!"
+echo ""

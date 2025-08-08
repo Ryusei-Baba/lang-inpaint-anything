@@ -17,27 +17,48 @@
 ## インストール
 
 ```bash
-# 依存関係のインストール
-pip install -r install/requirements.txt
-pip install groundingdino-py
+# 1. サブモジュールの初期化
+git submodule update --init --recursive
 
-# モデルファイルのダウンロード
+# 2. モデルファイルのダウンロード
 chmod +x install/download_models.sh
 ./install/download_models.sh
 
-# サブモジュールの初期化
-git submodule update --init --recursive
+# 3. 依存関係のインストール
+pip install -r install/requirements.txt
+pip install groundingdino-py
 ```
 
 ## 使い方
 
 ```bash
-# 基本的な使用法
+# 実行（config.yamlを使用）
 python3 text_remove_anything.py
-
-# カスタム画像・プロンプト
-python3 text_remove_anything.py --input_img "image.jpg" --text_prompt "dog"
 ```
+
+### 出力構造
+
+処理結果は以下のディレクトリ構造で保存されます：
+
+```
+output_image/
+├── GroundingDINO/    # 物体検出結果の可視化
+│   ├── image1.jpg
+│   └── image2.jpg
+├── SAM/              # セグメンテーションマスク
+│   ├── image1_mask0.jpg
+│   └── image2_mask0.jpg
+└── LAMA/             # 最終的な修復結果
+    ├── image1.jpg
+    └── image2.jpg
+```
+
+## 機能特徴
+
+- **バッチ処理対応**: ディレクトリ内の全画像を自動処理
+- **結果分離出力**: 検出・セグメンテーション・修復結果を別々に保存
+- **メモリ最適化**: GPU/CPU自動切り替え、メモリ不足時の画像リサイズ
+- **可視化**: GroundingDINOの検出結果を画像として保存
 
 ## システム構成
 
@@ -48,29 +69,44 @@ python3 text_remove_anything.py --input_img "image.jpg" --text_prompt "dog"
 ## 設定 (config.yaml)
 
 ```yaml
+# 処理パラメータ
+processing:
+  input_dir: "./input_image"       # 入力画像ディレクトリ
+  output_dir: "./output_image"     # 出力ベースディレクトリ
+  box_threshold: 0.35              # 物体検出の信頼度
+  dilate_kernel_size: 20           # マスク拡張サイズ
+  max_image_size: 2048             # メモリ節約の画像リサイズ上限
+  batch_processing: true           # バッチ処理を有効化
+  save_intermediate: true          # 中間結果を保存
+
 # デフォルト値
 general:
-  default_input_img: "./input_image/IMG_8160.jpg"
   default_text_prompt: "red pylon"
-
-# 検出パラメータ
-processing:
-  box_threshold: 0.35    # 物体検出の信頼度
-  dilate_kernel_size: 20 # マスク拡張サイズ
-  max_image_size: 2048   # メモリ節約の画像リサイズ上限
+  output_subdirs:
+    grounding_dino: "GroundingDINO"
+    sam: "SAM"
+    lama: "LAMA"
 
 device:
-  type: "auto"           # cuda/cpu/auto
+  type: "auto"                     # cuda/cpu/auto
 ```
 
 ## プロジェクト構造
 
 ```
-├── text_remove_anything.py  # メインスクリプト
-├── config.yaml             # 設定ファイル
-├── utils/                  # ユーティリティ
-├── doc/                    # ドキュメント・画像
-└── output_image/           # 結果出力
+├── text_remove_anything.py      # メインスクリプト（バッチ処理対応）
+├── config.yaml                 # 設定ファイル
+├── utils/                      # ユーティリティモジュール
+│   ├── config_loader.py        # 設定管理
+│   ├── text_grounding_detector.py  # GroundingDINO wrapper
+│   └── sam_processor.py        # SAM wrapper
+├── input_image/                # 入力画像ディレクトリ
+├── output_image/               # 結果出力
+│   ├── GroundingDINO/         # 検出結果可視化
+│   ├── SAM/                   # セグメンテーションマスク
+│   └── LAMA/                  # 最終修復結果
+├── Inpaint-Anything/           # サブモジュール（SAM + LaMa）
+└── doc/                        # ドキュメント・サンプル画像
 ```
 
 ## システム要件

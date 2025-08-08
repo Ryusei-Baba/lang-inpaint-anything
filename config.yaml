@@ -20,6 +20,10 @@ models:
 
 # 処理パラメータ
 processing:
+  # 入出力設定
+  input_dir: "./input_image"       # 入力画像ディレクトリ
+  output_dir: "./output_image"     # 出力ベースディレクトリ
+  
   # 検出閾値
   box_threshold: 0.35      # 物体検出の信頼度閾値 (0.0-1.0)
   text_threshold: 0.25     # テキストマッチング閾値 (0.0-1.0)
@@ -32,8 +36,9 @@ processing:
   max_image_size: 2048     # 最大画像サイズ（幅・高さの上限、これを超えるとリサイズ）
   memory_scale_factor: 0.5 # メモリ不足時のリサイズ係数
   
-  # 出力設定
-  output_dir: "./output_image"  # 出力ディレクトリ
+  # バッチ処理設定
+  batch_processing: true   # バッチ処理を有効にするか
+  save_intermediate: true  # 中間結果（GroundingDINO検出結果、SAMマスク）を保存するか
 
 # デバイス設定
 device:
@@ -42,7 +47,7 @@ device:
 
 # ログ設定
 logging:
-  level: "INFO"    # ログレベル: DEBUG, INFO, WARNING, ERROR
+  level: "WARNING"    # ログレベル: DEBUG, INFO, WARNING, ERROR
   
 # 一般設定
 general:
@@ -50,5 +55,10 @@ general:
   supported_image_formats: [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"]
   
   # デフォルト値（引数が指定されない場合に使用）
-  default_input_img: "./input_image/IMG_8160.jpg"  # デフォルト入力画像
   default_text_prompt: "red pylon"                 # デフォルトプロンプト
+  
+  # 出力ディレクトリ構造
+  output_subdirs:
+    grounding_dino: "GroundingDINO"   # GroundingDINO検出結果
+    sam: "SAM"                        # SAMマスク結果
+    lama: "LAMA"                      # LAMA修復結果
