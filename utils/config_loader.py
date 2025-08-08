@@ -133,9 +133,9 @@ class ConfigLoader:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 設定例:
-  python text_remove_anything.py --input_img image.jpg --text_prompt "dog"
-  python text_remove_anything.py --config custom_config.yaml --input_img image.jpg --text_prompt "person"
-  python text_remove_anything.py --input_img image.jpg --text_prompt "car" --interactive
+  python lang_inpaint_anything.py --input_img image.jpg --text_prompt "dog"
+  python lang_inpaint_anything.py --config custom_config.yaml --input_img image.jpg --text_prompt "person"
+  python lang_inpaint_anything.py --input_img image.jpg --text_prompt "car" --interactive
             """
         )
         

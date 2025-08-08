@@ -6,7 +6,7 @@ GroundingDINO + SAM + LaMaを使用して、入力ディレクトリ内の全画
 テキストプロンプトに基づくオブジェクト除去を実行します。
 
 使用方法:
-    python text_remove_anything.py --text_prompt "dog"
+    python lang_inpaint_anything.py --text_prompt "dog"
 """
 
 # 環境変数設定（ライブラリインポート前に設定）
