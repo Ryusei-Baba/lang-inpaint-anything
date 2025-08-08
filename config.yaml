@@ -1,0 +1,54 @@
+# テキストベースオブジェクト除去システム設定ファイル
+# この設定ファイルでシステムのすべてのパラメータを管理します
+
+# モデル設定
+models:
+  # SAM (Segment Anything Model) 設定
+  sam:
+    model_type: "vit_h"  # vit_h (大), vit_l (中), vit_b (小)
+    checkpoint_path: "./Inpaint-Anything/pretrained_models/sam_vit_h_4b8939.pth"
+  
+  # LaMa (Large Mask Inpainting) 設定
+  lama:
+    config_path: "./Inpaint-Anything/lama/configs/prediction/default.yaml"
+    checkpoint_path: "./Inpaint-Anything/pretrained_models/big-lama/big-lama"
+  
+  # GroundingDINO 設定
+  grounding_dino:
+    config_path: "./models/grounding_dino/GroundingDINO_SwinT_OGC.py"
+    checkpoint_path: "./models/grounding_dino/groundingdino_swint_ogc.pth"
+
+# 処理パラメータ
+processing:
+  # 検出閾値
+  box_threshold: 0.35      # 物体検出の信頼度閾値 (0.0-1.0)
+  text_threshold: 0.25     # テキストマッチング閾値 (0.0-1.0)
+  
+  # マスク処理
+  dilate_kernel_size: 20   # マスク拡張のカーネルサイズ (0で無効)
+  combine_masks: false     # 複数マスクを1つに結合するかどうか
+  
+  # メモリ最適化
+  max_image_size: 2048     # 最大画像サイズ（幅・高さの上限、これを超えるとリサイズ）
+  memory_scale_factor: 0.5 # メモリ不足時のリサイズ係数
+  
+  # 出力設定
+  output_dir: "./output_image"  # 出力ディレクトリ
+
+# デバイス設定
+device:
+  type: "auto"  # "auto", "cuda", "cpu"
+                # autoの場合、CUDAが利用可能なら"cuda"、そうでなければ"cpu"
+
+# ログ設定
+logging:
+  level: "INFO"    # ログレベル: DEBUG, INFO, WARNING, ERROR
+  
+# 一般設定
+general:
+  # 対応画像形式
+  supported_image_formats: [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"]
+  
+  # デフォルト値（引数が指定されない場合に使用）
+  default_input_img: "./input_image/IMG_8160.jpg"  # デフォルト入力画像
+  default_text_prompt: "red pylon"                 # デフォルトプロンプト
