@@ -1,6 +1,6 @@
 """
-シンプルなSAM処理モジュール
-GroundingDINOで検出されたバウンディングボックスからSAMでマスクを生成
+Simple SAM processing module
+Generates masks with SAM from bounding boxes detected by GroundingDINO
 """
 
 import torch
@@ -11,7 +11,7 @@ import gc
 from pathlib import Path
 from typing import List, Tuple, Optional
 
-# Inpaint-Anything のパスを追加
+# Add Inpaint-Anything path
 sys.path.insert(0, str(Path(__file__).parent.parent / "Inpaint-Anything"))
 
 try:
@@ -19,32 +19,32 @@ try:
     from utils import load_img_to_array, save_array_to_img, dilate_mask, show_mask
     SAM_AVAILABLE = True
 except ImportError as e:
-    print(f"SAM関連のインポートエラー: {e}")
+    print(f"SAM-related import error: {e}")
     SAM_AVAILABLE = False
 
 
 class SAMProcessor:
-    """シンプルなSAMセグメンテーション処理クラス"""
+    """Simple SAM segmentation processing class"""
     
     def __init__(self, 
                  model_type: str = "vit_h",
                  checkpoint_path: str = None,
                  device: str = "cuda"):
         """
-        SAMプロセッサーを初期化
+        Initialize SAM processor
         
         Args:
-            model_type: SAMモデルタイプ (vit_h, vit_l, vit_b)
-            checkpoint_path: SAMチェックポイントファイルのパス
-            device: 使用デバイス (cuda/cpu/auto)
+            model_type: SAM model type (vit_h, vit_l, vit_b)
+            checkpoint_path: SAM checkpoint file path
+            device: Device to use (cuda/cpu/auto)
         """
         if not SAM_AVAILABLE:
-            raise ImportError("SAM関連のモジュールがインポートできません。Inpaint-Anythingの設定を確認してください。")
+            raise ImportError("SAM-related modules cannot be imported. Please check Inpaint-Anything configuration.")
         
         self.model_type = model_type
         self.checkpoint_path = checkpoint_path
         
-        # デバイスの設定
+        # Device configuration
         if device == "auto":
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
@@ -54,26 +54,26 @@ class SAMProcessor:
     
     def boxes_to_points(self, boxes: torch.Tensor) -> Tuple[List[List[float]], List[int]]:
         """
-        バウンディングボックスをSAM用のポイントプロンプトに変換
+        Convert bounding boxes to point prompts for SAM
         
         Args:
-            boxes: バウンディングボックス [N, 4] (x1, y1, x2, y2)
+            boxes: Bounding boxes [N, 4] (x1, y1, x2, y2)
             
         Returns:
-            points: ポイント座標のリスト [[x, y], ...]
-            labels: ポイントラベルのリスト [1, 1, ...]
+            points: List of point coordinates [[x, y], ...]
+            labels: List of point labels [1, 1, ...]
         """
         points = []
         labels = []
         
         for box in boxes:
-            # ボックスの中心点を取得
+            # Get box center point
             x1, y1, x2, y2 = box.cpu().numpy()
             center_x = (x1 + x2) / 2
             center_y = (y1 + y2) / 2
             
             points.append([float(center_x), float(center_y)])
-            labels.append(1)  # 前景ポイント
+            labels.append(1)  # Foreground point
         
         return points, labels
     
@@ -81,25 +81,25 @@ class SAMProcessor:
                      image: np.ndarray,
                      boxes: torch.Tensor) -> List[np.ndarray]:
         """
-        バウンディングボックスからマスクを予測
+        Predict masks from bounding boxes
         
         Args:
-            image: 入力画像 (H, W, C) RGB形式
-            boxes: バウンディングボックス [N, 4]
+            image: Input image (H, W, C) in RGB format
+            boxes: Bounding boxes [N, 4]
             
         Returns:
-            masks: 予測されたマスクのリスト
+            masks: List of predicted masks
         """
         if len(boxes) == 0:
             return []
         
         try:
-            # ボックスをポイントプロンプトに変換
+            # Convert boxes to point prompts
             points, labels = self.boxes_to_points(boxes)
             
-            print(f"SAMでマスク予測中... ポイント数: {len(points)}")
+            print(f"Predicting masks with SAM... Point count: {len(points)}")
             
-            # SAMでマスク予測を実行
+            # Execute SAM mask prediction
             masks, scores, logits = predict_masks_with_sam(
                 img=image,
                 point_coords=points,
@@ -109,35 +109,35 @@ class SAMProcessor:
                 device=self.device,
             )
             
-            # 結果を整理 - 最も良いマスクだけを選択
+            # Process results - select only the best mask
             if masks is not None and scores is not None:
                 if isinstance(masks, np.ndarray):
-                    # 複数のマスクの場合、最高スコアのものを選択
+                    # For multiple masks, select the highest scoring one
                     if len(masks.shape) == 3:
                         best_mask_idx = np.argmax(scores)
                         best_mask = masks[best_mask_idx]
-                        print(f"最適なマスクを選択しました（スコア: {scores[best_mask_idx]:.3f}）")
+                        print(f"Selected optimal mask (score: {scores[best_mask_idx]:.3f})")
                         return [best_mask]
-                    # 単一のマスクの場合
+                    # For single mask
                     elif len(masks.shape) == 2:
                         return [masks]
                 elif isinstance(masks, list):
-                    # リストの場合も最高スコアを選択
+                    # For list case, also select highest scoring one
                     if len(masks) > 1 and scores is not None:
                         best_mask_idx = np.argmax(scores)
-                        print(f"最適なマスクを選択しました（スコア: {scores[best_mask_idx]:.3f}）")
+                        print(f"Selected optimal mask (score: {scores[best_mask_idx]:.3f})")
                         return [masks[best_mask_idx]]
                     return [masks[0]] if masks else []
             
-            print("SAMマスク予測が失敗しました")
+            print("SAM mask prediction failed")
             return []
             
         except torch.cuda.OutOfMemoryError:
-            print("GPU メモリ不足です。CPUで再試行します...")
+            print("GPU memory insufficient. Retrying with CPU...")
             torch.cuda.empty_cache()
             gc.collect()
             
-            # CPUで再試行
+            # Retry with CPU
             masks, scores, logits = predict_masks_with_sam(
                 img=image,
                 point_coords=points,
@@ -149,63 +149,63 @@ class SAMProcessor:
             
             if masks is not None and scores is not None:
                 if isinstance(masks, np.ndarray):
-                    # 複数のマスクの場合、最高スコアのものを選択
+                    # For multiple masks, select the highest scoring one
                     if len(masks.shape) == 3:
                         best_mask_idx = np.argmax(scores)
                         best_mask = masks[best_mask_idx]
-                        print(f"CPU処理: 最適なマスクを選択しました（スコア: {scores[best_mask_idx]:.3f}）")
+                        print(f"CPU processing: Selected optimal mask (score: {scores[best_mask_idx]:.3f})")
                         return [best_mask]
-                    # 単一のマスクの場合
+                    # For single mask
                     elif len(masks.shape) == 2:
                         return [masks]
                 elif isinstance(masks, list):
-                    # リストの場合も最高スコアを選択
+                    # For list case, also select highest scoring one
                     if len(masks) > 1 and scores is not None:
                         best_mask_idx = np.argmax(scores)
-                        print(f"CPU処理: 最適なマスクを選択しました（スコア: {scores[best_mask_idx]:.3f}）")
+                        print(f"CPU processing: Selected optimal mask (score: {scores[best_mask_idx]:.3f})")
                         return [masks[best_mask_idx]]
                     return [masks[0]] if masks else []
             
             return []
             
         except Exception as e:
-            print(f"SAMマスク予測中にエラーが発生しました: {e}")
+            print(f"Error occurred during SAM mask prediction: {e}")
             return []
     
     def dilate_masks(self, masks: List[np.ndarray], kernel_size: int = 15) -> List[np.ndarray]:
         """
-        マスクを膨張処理して拡張
+        Dilate masks for expansion
         
         Args:
-            masks: マスクのリスト
-            kernel_size: 膨張処理のカーネルサイズ
+            masks: List of masks
+            kernel_size: Dilation kernel size
             
         Returns:
-            dilated_masks: 膨張処理後のマスクのリスト
+            dilated_masks: List of masks after dilation
         """
         dilated_masks = []
         
         for mask in masks:
             try:
-                # dilate_mask関数を使用
+                # Use dilate_mask function
                 dilated_mask = dilate_mask(mask, kernel_size)
                 dilated_masks.append(dilated_mask)
             except Exception as e:
-                print(f"マスク膨張処理中にエラー: {e}")
-                # エラーの場合は元のマスクをそのまま使用
+                print(f"Error during mask dilation: {e}")
+                # Use original mask in case of error
                 dilated_masks.append(mask)
         
         return dilated_masks
     
     def combine_masks(self, masks: List[np.ndarray]) -> np.ndarray:
         """
-        複数のマスクを1つに結合
+        Combine multiple masks into one
         
         Args:
-            masks: マスクのリスト
+            masks: List of masks
             
         Returns:
-            combined_mask: 結合されたマスク
+            combined_mask: Combined mask
         """
         if len(masks) == 0:
             return None
@@ -213,17 +213,17 @@ class SAMProcessor:
         if len(masks) == 1:
             return masks[0]
         
-        # 最初のマスクから開始
+        # Start with the first mask
         combined_mask = masks[0].copy()
         
-        # 他のマスクを順次結合
+        # Sequentially combine other masks
         for mask in masks[1:]:
             combined_mask = np.logical_or(combined_mask, mask)
         
         return combined_mask.astype(np.uint8)
     
     def cleanup(self):
-        """リソースをクリーンアップ"""
+        """Clean up resources"""
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
@@ -233,15 +233,15 @@ def create_sam_processor(model_type: str = "vit_h",
                         checkpoint_path: str = None,
                         device: str = "cuda") -> SAMProcessor:
     """
-    SAMプロセッサーのファクトリ関数
+    SAM processor factory function
     
     Args:
-        model_type: SAMモデルタイプ
-        checkpoint_path: チェックポイントファイルのパス
-        device: 使用デバイス
+        model_type: SAM model type
+        checkpoint_path: Checkpoint file path
+        device: Device to use
         
     Returns:
-        SAMProcessor インスタンス
+        SAMProcessor instance
     """
     return SAMProcessor(
         model_type=model_type,

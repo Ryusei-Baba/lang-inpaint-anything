@@ -6,37 +6,37 @@ from typing import Dict, Any, Optional, Union
 import logging
 
 class ConfigLoader:
-    """設定ファイルとコマンドライン引数を統合管理するクラス"""
+    """Class for unified management of configuration files and command line arguments"""
     
     def __init__(self, config_path: str = "config.yaml"):
         """
-        設定ローダーを初期化
+        Initialize configuration loader
         
         Args:
-            config_path: 設定ファイルのパス
+            config_path: Path to configuration file
         """
         self.config_path = config_path
         self.config = {}
         self.load_config()
     
     def load_config(self):
-        """設定ファイルを読み込み"""
+        """Load configuration file"""
         try:
             if os.path.exists(self.config_path):
                 with open(self.config_path, 'r', encoding='utf-8') as f:
                     self.config = yaml.safe_load(f) or {}
-                print(f"設定ファイルを読み込みました: {self.config_path}")
+                print(f"Configuration file loaded: {self.config_path}")
             else:
-                print(f"設定ファイルが見つかりません: {self.config_path}")
-                print("デフォルト設定を使用します")
+                print(f"Configuration file not found: {self.config_path}")
+                print("Using default configuration")
                 self.config = self._get_default_config()
         except Exception as e:
-            print(f"設定ファイルの読み込みエラー: {e}")
-            print("デフォルト設定を使用します")
+            print(f"Configuration file loading error: {e}")
+            print("Using default configuration")
             self.config = self._get_default_config()
     
     def _get_default_config(self) -> Dict[str, Any]:
-        """デフォルト設定を返す"""
+        """Return default configuration"""
         return {
             'models': {
                 'sam': {
@@ -82,14 +82,14 @@ class ConfigLoader:
     
     def get(self, key_path: str, default: Any = None) -> Any:
         """
-        ドット記法でネストした設定値を取得
+        Get nested configuration value using dot notation
         
         Args:
-            key_path: ドット区切りのキーパス（例: "models.sam.model_type"）
-            default: デフォルト値
+            key_path: Dot-separated key path (e.g., "models.sam.model_type")
+            default: Default value
             
         Returns:
-            設定値
+            Configuration value
         """
         keys = key_path.split('.')
         value = self.config
@@ -103,191 +103,191 @@ class ConfigLoader:
     
     def set(self, key_path: str, value: Any):
         """
-        ドット記法でネストした設定値を設定
+        Set nested configuration value using dot notation
         
         Args:
-            key_path: ドット区切りのキーパス
-            value: 設定値
+            key_path: Dot-separated key path
+            value: Configuration value
         """
         keys = key_path.split('.')
         config = self.config
         
-        # 最後のキー以外は辞書を作成/取得
+        # Create/get dictionaries for all keys except the last one
         for key in keys[:-1]:
             if key not in config or not isinstance(config[key], dict):
                 config[key] = {}
             config = config[key]
         
-        # 最後のキーに値を設定
+        # Set value for the last key
         config[keys[-1]] = value
     
     def setup_argparse(self) -> argparse.ArgumentParser:
         """
-        設定ファイルの内容に基づいてargparseを設定
+        Set up argparse based on configuration file contents
         
         Returns:
-            設定済みのArgumentParser
+            Configured ArgumentParser
         """
         parser = argparse.ArgumentParser(
-            description="Text Remove Anything - テキストベースのオブジェクト除去ツール",
+            description="Text Remove Anything - Text-based Object Removal Tool",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-設定例:
+Configuration examples:
   python lang_inpaint_anything.py --input_img image.jpg --text_prompt "dog"
   python lang_inpaint_anything.py --config custom_config.yaml --input_img image.jpg --text_prompt "person"
   python lang_inpaint_anything.py --input_img image.jpg --text_prompt "car" --interactive
             """
         )
         
-        # 設定ファイル指定
+        # Configuration file specification
         parser.add_argument(
             "--config", type=str, default="config.yaml",
-            help="設定ファイルのパス (デフォルト: config.yaml)"
+            help="Configuration file path (default: config.yaml)"
         )
         
-        # 必須引数
+        # Required arguments
         parser.add_argument(
             "--input_img", type=str, required=False,
-            help="入力画像のパス"
+            help="Input image path"
         )
         parser.add_argument(
             "--text_prompt", type=str, required=False,
             default=self.get("processing.text_prompt"),
-            help="除去したいオブジェクトのテキスト記述"
+            help="Text description of objects to remove"
         )
         
-        # バッチ処理用の入力ディレクトリ
+        # Input directory for batch processing
         parser.add_argument(
             "--input_dir", type=str,
             default=self.get("processing.input_dir"),
-            help="入力画像ディレクトリ（バッチ処理用）"
+            help="Input image directory (for batch processing)"
         )
         
-        # オプション引数（設定ファイルでデフォルト値を設定可能）
+        # Optional arguments (default values can be set in config file)
         parser.add_argument(
             "--output_dir", type=str,
             default=self.get("processing.output_dir"),
-            help=f"出力ディレクトリ (デフォルト: {self.get('processing.output_dir')})"
+            help=f"Output directory (default: {self.get('processing.output_dir')})"
         )
         
-        # 検出パラメータ
+        # Detection parameters
         parser.add_argument(
             "--box_threshold", type=float,
             default=self.get("processing.box_threshold"),
-            help=f"境界ボックス検出の信頼度閾値 (デフォルト: {self.get('processing.box_threshold')})"
+            help=f"Bounding box detection confidence threshold (default: {self.get('processing.box_threshold')})"
         )
         parser.add_argument(
             "--text_threshold", type=float,
             default=self.get("processing.text_threshold"),
-            help=f"テキストマッチングの信頼度閾値 (デフォルト: {self.get('processing.text_threshold')})"
+            help=f"Text matching confidence threshold (default: {self.get('processing.text_threshold')})"
         )
         
-        # マスク処理
+        # Mask processing
         parser.add_argument(
             "--dilate_kernel_size", type=int,
             default=self.get("processing.dilate_kernel_size"),
-            help=f"マスク拡張のカーネルサイズ (デフォルト: {self.get('processing.dilate_kernel_size')})"
+            help=f"Mask dilation kernel size (default: {self.get('processing.dilate_kernel_size')})"
         )
         
-        # モデル設定
+        # Model configuration
         parser.add_argument(
             "--sam_model_type", type=str,
             default=self.get("models.sam.model_type"),
             choices=['vit_h', 'vit_l', 'vit_b', 'vit_t'],
-            help=f"SAMモデルタイプ (デフォルト: {self.get('models.sam.model_type')})"
+            help=f"SAM model type (default: {self.get('models.sam.model_type')})"
         )
         parser.add_argument(
             "--sam_ckpt", type=str,
             default=self.get("models.sam.checkpoint_path"),
-            help="SAMチェックポイントのパス"
+            help="SAM checkpoint path"
         )
         parser.add_argument(
             "--lama_config", type=str,
             default=self.get("models.lama.config_path"),
-            help="LaMa設定ファイルのパス"
+            help="LaMa configuration file path"
         )
         parser.add_argument(
             "--lama_ckpt", type=str,
             default=self.get("models.lama.checkpoint_path"),
-            help="LaMaチェックポイントのパス"
+            help="LaMa checkpoint path"
         )
         parser.add_argument(
             "--grounding_dino_config", type=str,
             default=self.get("models.grounding_dino.config_path"),
-            help="GroundingDINO設定ファイルのパス"
+            help="GroundingDINO configuration file path"
         )
         parser.add_argument(
             "--grounding_dino_ckpt", type=str,
             default=self.get("models.grounding_dino.checkpoint_path"),
-            help="GroundingDINOチェックポイントのパス"
+            help="GroundingDINO checkpoint path"
         )
         
-        # メモリ最適化
+        # Memory optimization
         parser.add_argument(
             "--use_memory_efficient_sam", action="store_true",
             default=self.get("memory_optimization.use_memory_efficient_sam"),
-            help="メモリ効率的SAM処理を使用"
+            help="Use memory-efficient SAM processing"
         )
         parser.add_argument(
             "--max_memory_mb", type=int,
             default=self.get("memory_optimization.max_memory_mb"),
-            help=f"最大GPU メモリ使用量(MB) (デフォルト: {self.get('memory_optimization.max_memory_mb')})"
+            help=f"Maximum GPU memory usage (MB) (default: {self.get('memory_optimization.max_memory_mb')})"
         )
         parser.add_argument(
             "--monitor_gpu", action="store_true",
             default=self.get("memory_optimization.monitor_gpu"),
-            help="GPU監視を有効化"
+            help="Enable GPU monitoring"
         )
         parser.add_argument(
             "--save_monitoring_stats", type=str,
             default=self.get("memory_optimization.save_monitoring_stats"),
-            help="監視統計の保存パス"
+            help="Monitoring statistics save path"
         )
         
-        # オプションフラグ
+        # Optional flags
         parser.add_argument(
             "--interactive", action="store_true",
             default=self.get("processing.interactive"),
-            help="インタラクティブモードを有効化"
+            help="Enable interactive mode"
         )
         parser.add_argument(
             "--combine_masks", action="store_true",
             default=self.get("processing.combine_masks"),
-            help="複数マスクを結合"
+            help="Combine multiple masks"
         )
         parser.add_argument(
             "--save_intermediate", action="store_true",
             default=self.get("processing.save_intermediate"),
-            help="中間結果を保存"
+            help="Save intermediate results"
         )
         
-        # デバイス設定
+        # Device configuration
         parser.add_argument(
             "--device", type=str,
             default=self.get("device.type"),
             choices=['cuda', 'cpu', 'auto'],
-            help=f"使用デバイス (デフォルト: {self.get('device.type')})"
+            help=f"Device to use (default: {self.get('device.type')})"
         )
         
         return parser
     
     def merge_args(self, args: argparse.Namespace) -> argparse.Namespace:
         """
-        コマンドライン引数と設定ファイルの内容をマージ
-        コマンドライン引数が優先される
+        Merge command line arguments with configuration file contents
+        Command line arguments take precedence
         
         Args:
-            args: パースされたコマンドライン引数
+            args: Parsed command line arguments
             
         Returns:
-            マージされた設定
+            Merged configuration
         """
-        # 設定ファイルが指定されている場合は再読み込み
+        # Reload configuration if a different config file is specified
         if hasattr(args, 'config') and args.config != self.config_path:
             self.config_path = args.config
             self.load_config()
         
-        # デバイス設定の処理
+        # Process device configuration
         if args.device == 'auto':
             import torch
             args.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -296,35 +296,35 @@ class ConfigLoader:
     
     def save_config(self, output_path: str):
         """
-        現在の設定をファイルに保存
+        Save current configuration to file
         
         Args:
-            output_path: 保存先パス
+            output_path: Output file path
         """
         with open(output_path, 'w', encoding='utf-8') as f:
             yaml.safe_dump(self.config, f, default_flow_style=False, 
                           allow_unicode=True, sort_keys=False)
-        print(f"設定ファイルを保存しました: {output_path}")
+        print(f"Configuration file saved: {output_path}")
     
     def print_config(self):
-        """現在の設定を表示"""
-        print("\n=== 現在の設定 ===")
+        """Display current configuration"""
+        print("\n=== Current Configuration ===")
         print(yaml.dump(self.config, default_flow_style=False, 
                        allow_unicode=True, sort_keys=False))
     
     def validate_paths(self) -> bool:
         """
-        設定されたパスが存在するかチェック
+        Check if configured paths exist
         
         Returns:
-            すべてのパスが存在する場合True
+            True if all paths exist
         """
         required_paths = {
-            "SAMチェックポイント": self.get("models.sam.checkpoint_path"),
-            "LaMa設定": self.get("models.lama.config_path"),
-            "LaMaチェックポイント": self.get("models.lama.checkpoint_path"),
-            "GroundingDINO設定": self.get("models.grounding_dino.config_path"),
-            "GroundingDINOチェックポイント": self.get("models.grounding_dino.checkpoint_path")
+            "SAM checkpoint": self.get("models.sam.checkpoint_path"),
+            "LaMa config": self.get("models.lama.config_path"),
+            "LaMa checkpoint": self.get("models.lama.checkpoint_path"),
+            "GroundingDINO config": self.get("models.grounding_dino.config_path"),
+            "GroundingDINO checkpoint": self.get("models.grounding_dino.checkpoint_path")
         }
         
         missing_paths = []
@@ -333,22 +333,23 @@ class ConfigLoader:
                 missing_paths.append(f"{name}: {path}")
         
         if missing_paths:
-            print("\n⚠️  以下のファイルが見つかりません:")
+            print("\n⚠️  The following files were not found:")
             for missing in missing_paths:
                 print(f"  - {missing}")
-            print("\ninstall/download_models.shを実行してモデルをダウンロードしてください")
+            print("\nPlease run install/download_models.sh to download the models")
             return False
         
         return True
 
+
 def load_config(config_path: str = "config.yaml") -> ConfigLoader:
     """
-    設定ローダーのファクトリ関数
+    Configuration loader factory function
     
     Args:
-        config_path: 設定ファイルのパス
+        config_path: Configuration file path
         
     Returns:
-        ConfigLoaderインスタンス
+        ConfigLoader instance
     """
     return ConfigLoader(config_path)
