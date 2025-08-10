@@ -1,4 +1,4 @@
-# Text-based Object Removal System
+# Language Inpaint-Anything
 
 AI tool for removing objects from images using natural language descriptions
 
